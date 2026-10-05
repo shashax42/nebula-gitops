@@ -1,0 +1,39 @@
+# 최상위 디렉터리 하나 = ArgoCD Application 하나.
+# 새 서비스는 디렉터리만 추가하면 자동으로 배포 대상이 된다.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nebula-services
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/shashax42/nebula-gitops.git
+        revision: main
+        directories:
+          - path: '*'
+          - { path: .github, exclude: true }
+          - { path: platform, exclude: true }
+          - { path: scripts, exclude: true }
+          - { path: local, exclude: true }
+          - { path: lab, exclude: true }
+  template:
+    metadata:
+      name: '{{ .path.basename }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/shashax42/nebula-gitops.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: backend
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [CreateNamespace=true]
+        retry:
+          limit: 5
+          backoff: { duration: 10s, factor: 2, maxDuration: 3m }

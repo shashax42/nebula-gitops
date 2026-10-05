@@ -1,0 +1,17 @@
+# App of Apps 진입점. Terraform(EKS) 또는 local/bootstrap.sh(kind)가 이 파일 하나만 적용한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nebula-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shashax42/nebula-gitops.git
+    targetRevision: main
+    path: platform/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
