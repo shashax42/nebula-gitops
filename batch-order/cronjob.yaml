@@ -13,7 +13,7 @@ spec:
         spec:
           containers:
             - name: batch-order
-              image: ghcr.io/shashax42/batch-order:latest
+              image: ghcr.io/shashax42/batch-order:sha-54ec83c@sha256:341bda07e8948b2df53e900f8484b5e1869076a34955a4ffbc416a14fff3b6cd
               imagePullPolicy: IfNotPresent
               envFrom:
                 - configMapRef:
@@ -38,7 +38,7 @@ spec:
         spec:
           containers:
             - name: batch-order
-              image: ghcr.io/shashax42/batch-order:latest
+              image: ghcr.io/shashax42/batch-order:sha-54ec83c@sha256:341bda07e8948b2df53e900f8484b5e1869076a34955a4ffbc416a14fff3b6cd
               imagePullPolicy: IfNotPresent
               envFrom:
                 - configMapRef:
