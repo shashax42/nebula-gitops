@@ -1,0 +1,16 @@
+# 클러스터 공통 리소스: 이미지 정책(Kyverno), 롤백 분석 템플릿(Argo Rollouts)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nebula-cluster
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shashax42/nebula-gitops.git
+    targetRevision: main
+    path: platform/cluster
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

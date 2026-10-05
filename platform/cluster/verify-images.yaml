@@ -1,0 +1,44 @@
+# backend 네임스페이스의 ghcr.io/shashax42 이미지는
+# nebula-ci-templates 파이프라인(v*)이 keyless 서명하고 SBOM을 첨부한 것만 허용한다.
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: nebula-verify-images
+spec:
+  validationActions: [Deny]
+  webhookConfiguration:
+    timeoutSeconds: 30
+  evaluation:
+    background:
+      enabled: false
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: backend
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: ghcr.io/shashax42/*
+  attestors:
+    - name: pipeline
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              subjectRegExp: '^https://github\.com/shashax42/nebula-ci-templates/\.github/workflows/service-pipeline\.yml@refs/tags/v[0-9]+$'
+        ctlog:
+          url: https://rekor.sigstore.dev
+  attestations:
+    - name: sbom
+      intoto:
+        type: https://spdx.dev/Document
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors.pipeline])).all(e, e > 0)
+      message: 이미지가 nebula-ci-templates 파이프라인으로 서명되지 않았습니다.
+    - expression: >-
+        images.containers.map(image, verifyAttestationSignatures(image, attestations.sbom, [attestors.pipeline])).all(e, e > 0)
+      message: 이미지에 서명된 SBOM(SPDX)이 없습니다.

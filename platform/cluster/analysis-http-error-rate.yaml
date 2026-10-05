@@ -1,0 +1,38 @@
+# 카나리 분석: canary 서비스에 요청을 보내 5xx/타임아웃이 maxErrors를 넘으면 실패 → 자동 롤백.
+# Prometheus 없이 동작하므로 로컬(kind)에서도 그대로 검증할 수 있다.
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: http-error-rate
+spec:
+  args:
+    - name: url
+    - name: requests
+      value: "30"
+    - name: maxErrors
+      value: "2"
+  metrics:
+    - name: http-error-rate
+      count: 3
+      interval: 10s
+      failureLimit: 0
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: probe
+                    image: curlimages/curl:8.10.1
+                    command: [sh, -c]
+                    args:
+                      - |
+                        errors=0
+                        for i in $(seq 1 {{args.requests}}); do
+                          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "{{args.url}}" || echo 000)
+                          [ "$code" = "200" ] || errors=$((errors+1))
+                        done
+                        echo "errors=${errors}/{{args.requests}} (max {{args.maxErrors}})"
+                        [ "$errors" -le {{args.maxErrors}} ]
