@@ -21,7 +21,7 @@ spec:
       serviceAccountName: spring-cloud-kubernetes
       containers:
         - name: service-order
-          image: ghcr.io/shashax42/service-order:sha-4d2ddc1@sha256:230b4535feef0154e72afdd16053000ddd0c1dba53f74607d6044cc33826bd8b
+          image: ghcr.io/shashax42/service-order:sha-1de94be@sha256:b069f9f47e0b8f8efc71a72b31c70ee5f7c435cda7ae9897b5b5483f8e721f4e
           ports:
             - containerPort: 8080
           envFrom:
