@@ -29,6 +29,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: config-gateway
+            - configMapRef:
+                name: observability-env
+                optional: true
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
