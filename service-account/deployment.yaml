@@ -21,7 +21,7 @@ spec:
       serviceAccountName: spring-cloud-kubernetes
       containers:
         - name: service-account
-          image: ghcr.io/shashax42/service-account:latest
+          image: ghcr.io/shashax42/service-account:sha-1c8db56@sha256:3c722bfaa5fadb6549afee755938e9296d4c1caad333904986aae42666f1b8fb
           ports:
             - containerPort: 8080
           envFrom:
