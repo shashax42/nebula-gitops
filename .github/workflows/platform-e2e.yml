@@ -60,12 +60,13 @@ jobs:
       - name: ArgoCD applications
         if: always()
         run: |
-          kubectl -n argocd get applications
+          apps=$(kubectl -n argocd get applications 2>&1 || true)
+          echo "$apps"
           {
             echo "### ArgoCD Applications"
             echo
             echo '```'
-            kubectl -n argocd get applications
+            echo "$apps"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
