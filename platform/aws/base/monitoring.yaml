@@ -1,4 +1,4 @@
-# 모니터링 스택 (Nebula-Monitoring 아키텍처): kube-state-metrics → cluster collector,
+# 모니터링 스택 (Nebula-Monitoring 아키텍처). 환경 공통 정의 — 환경 값은 envs/<env> 오버레이: kube-state-metrics → cluster collector,
 # 앱 OTLP·컨테이너 로그·kubelet → agent → gateway → AMP / CloudWatch Logs / X-Ray
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -37,10 +37,11 @@ spec:
       path: helm/otel-collector
       helm:
         releaseName: otel-collector
+        # 환경별 오버레이(envs/<env>/kustomization.yaml)가 이 목록을 환경 값 파일로 바꾼다
         valueFiles:
           - values-dev.yaml
           - values-target-infra.yaml
-          - $gitops/platform/aws/values-monitoring.yaml
+          - $gitops/platform/aws/envs/dev/values-monitoring.yaml
     - repoURL: https://github.com/shashax42/nebula-gitops.git
       targetRevision: main
       ref: gitops
