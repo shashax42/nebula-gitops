@@ -36,7 +36,8 @@ spec:
       interval: 1m
       count: 5
       failureLimit: 1
-      successCondition: len(result) == 0 || isNaN(result[0]) || result[0] < 1
+      # '> bool' → 1(canary 가 stable 대비 나쁨) / 0. 필터 비교를 쓰면 위반 시 에러율 값(<1)이 반환되어 통과해 버린다
+      successCondition: len(result) == 0 || result[0] == 0
       provider:
         prometheus:
           address: "{{args.amp-endpoint}}"
@@ -48,7 +49,7 @@ spec:
               (sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER", status_code="STATUS_CODE_ERROR"}[2m])) or vector(0))
               / sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER"}[2m]))
             )
-            >
+            > bool
             2 * (
               (sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="stable", span_kind="SPAN_KIND_SERVER", status_code="STATUS_CODE_ERROR"}[2m])) or vector(0))
               / sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="stable", span_kind="SPAN_KIND_SERVER"}[2m]))
