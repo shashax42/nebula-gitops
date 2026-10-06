@@ -1,0 +1,68 @@
+# 메트릭 기반 카나리 분석 (service-order rollout 에서 사용)
+#   데이터: OTel gateway span_metrics → AMP traces_span_metrics_*{deployment_track="canary"|"stable"}
+#   판정 (1분 간격 5회, 2회 실패 시 롤백 — 단발성 튐에 롤백하지 않도록 반복 측정):
+#     1) canary 에러율 < 1%                     (절대 기준, SLO 99.9% 대비 여유)
+#     2) canary 에러율 <= stable × 2 + 0.5%p    (상대 기준: 외부 장애로 둘 다 나쁘면 롤백하지 않음)
+#     3) canary P99 < 1.5s
+#   Argo Rollouts 컨트롤러는 IRSA(aps:QueryMetrics)로 AMP 에 SigV4 질의한다 (Nebula-Platform gitops.tf).
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: nebula-slo-canary
+spec:
+  args:
+    - name: service
+    - name: amp-endpoint
+      value: ""   # terraform output -raw amp_endpoint (…/workspaces/ws-xxxx/), render-gitops-values.sh 가 채움
+    - name: region
+      value: ap-northeast-2
+  metrics:
+    - name: canary-error-ratio
+      interval: 1m
+      count: 5
+      failureLimit: 1
+      successCondition: len(result) == 0 || isNaN(result[0]) || result[0] < 0.01
+      provider:
+        prometheus:
+          address: "{{args.amp-endpoint}}"
+          authentication:
+            sigv4:
+              region: "{{args.region}}"
+          query: |
+            sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER", status_code="STATUS_CODE_ERROR"}[2m]))
+            /
+            sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER"}[2m]))
+    - name: canary-vs-stable-errors
+      interval: 1m
+      count: 5
+      failureLimit: 1
+      successCondition: len(result) == 0 || isNaN(result[0]) || result[0] < 1
+      provider:
+        prometheus:
+          address: "{{args.amp-endpoint}}"
+          authentication:
+            sigv4:
+              region: "{{args.region}}"
+          query: |
+            (
+              (sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER", status_code="STATUS_CODE_ERROR"}[2m])) or vector(0))
+              / sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER"}[2m]))
+            )
+            >
+            2 * (
+              (sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="stable", span_kind="SPAN_KIND_SERVER", status_code="STATUS_CODE_ERROR"}[2m])) or vector(0))
+              / sum(rate(traces_span_metrics_calls_total{service_name="{{args.service}}", deployment_track="stable", span_kind="SPAN_KIND_SERVER"}[2m]))
+            ) + 0.005
+    - name: canary-p99
+      interval: 1m
+      count: 5
+      failureLimit: 1
+      successCondition: len(result) == 0 || isNaN(result[0]) || result[0] < 1.5
+      provider:
+        prometheus:
+          address: "{{args.amp-endpoint}}"
+          authentication:
+            sigv4:
+              region: "{{args.region}}"
+          query: |
+            histogram_quantile(0.99, sum by (le) (rate(traces_span_metrics_duration_seconds_bucket{service_name="{{args.service}}", deployment_track="canary", span_kind="SPAN_KIND_SERVER"}[2m])))

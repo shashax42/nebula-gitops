@@ -1,5 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
+# 메트릭 기반 카나리: 새 버전 파드에 nebula.io/track=canary 라벨이 붙고, OTel agent 가 이를 deployment.track 으로
+# 수집해 canary/stable 의 에러율·P99 를 AMP 에서 따로 계산한다. 분석이 실패하면 Argo Rollouts 가 자동 롤백한다.
+#   분석 템플릿: platform/aws/analysis-slo-canary.yaml (AMP 주소가 계정마다 달라 AWS 전용 디렉터리에 둔다)
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: service-order
   namespace: backend
@@ -9,10 +12,24 @@ spec:
     matchLabels:
       app: service-order
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    canary:
+      canaryMetadata:
+        labels:
+          nebula.io/track: canary
+      stableMetadata:
+        labels:
+          nebula.io/track: stable
+      steps:
+        - setWeight: 50
+        # 카나리 파드가 기동하고(liveness 60s) 판단할 만큼 요청이 쌓일 시간
+        - pause: { duration: 3m }
+        - analysis:
+            templates:
+              - templateName: nebula-slo-canary
+                clusterScope: true
+            args:
+              - name: service
+                value: service-order
   template:
     metadata:
       labels:
@@ -27,6 +44,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: config-order
+            - configMapRef:
+                name: observability-env
+                optional: true
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
