@@ -1,0 +1,52 @@
+# 모니터링 스택 (Nebula-Monitoring 아키텍처): kube-state-metrics → cluster collector,
+# 앱 OTLP·컨테이너 로그·kubelet → agent → gateway → AMP / CloudWatch Logs / X-Ray
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-state-metrics
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-state-metrics
+      targetRevision: 5.27.0
+      helm:
+        valueFiles:
+          - $monitoring/helm/kube-state-metrics/values.yaml
+    - repoURL: https://github.com/shashax42/Nebula-Monitoring.git
+      targetRevision: main
+      ref: monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-collector
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/shashax42/Nebula-Monitoring.git
+      targetRevision: main
+      path: helm/otel-collector
+      helm:
+        releaseName: otel-collector
+        valueFiles:
+          - values-dev.yaml
+          - values-target-infra.yaml
+          - $gitops/platform/aws/values-monitoring.yaml
+    - repoURL: https://github.com/shashax42/nebula-gitops.git
+      targetRevision: main
+      ref: gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

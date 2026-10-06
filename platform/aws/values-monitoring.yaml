@@ -1,0 +1,19 @@
+# 계정·워크스페이스 고유 값 (Nebula-Monitoring scripts/render-gitops-values.sh 가 Terraform output 으로 채운다)
+global:
+  clusterName: ""                # terraform output -raw target_cluster_name
+  environment: dev
+  aws:
+    region: ap-northeast-2
+    ampRemoteWriteUrl: ""        # terraform output -raw amp_remote_write_url
+
+gateway:
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: ""   # terraform output -raw target_otel_role_arn
+
+# 주문 사가의 비동기 처리 가시성: Strimzi Kafka(market-message) consumer lag
+cluster:
+  messaging:
+    kafka:
+      enabled: true
+      brokers: ["market-message-kafka-bootstrap.backend.svc:9092"]
