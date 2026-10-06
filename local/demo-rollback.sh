@@ -49,7 +49,22 @@ for i in $(seq 1 "$N"); do
   [ "$(wait_phase '^Healthy$' 300)" = Healthy ] || { echo "정상 버전 복구 실패 (trial $i)"; exit 1; }
 done
 
+avg=$(awk -F, 'NR>1 && $2=="rolled_back" {s+=$3; n++} END {if (n) printf "%.1f", s/n; else print "-"}' "$OUT")
+
 echo
-echo "결과: 장애 버전 ${N}회 배포 → 자동 롤백 ${ok}회"
-awk -F, 'NR>1 && $2=="rolled_back" {s+=$3; n++} END {if (n) printf "평균 롤백 소요: %.1f초\n", s/n}' "$OUT"
+echo "결과: 장애 버전 ${N}회 배포 → 자동 롤백 ${ok}회, 평균 롤백 소요 ${avg}초"
 echo "기록: $OUT"
+
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+  {
+    echo "### 자동 롤백 (Argo Rollouts)"
+    echo
+    echo "장애 버전 **${N}회** 배포 → 자동 롤백 **${ok}회**, 평균 롤백 소요 **${avg}초**"
+    echo
+    echo "| trial | result | seconds | stable 유지 |"
+    echo "|---|---|---|---|"
+    tail -n +2 "$OUT" | awk -F, '{printf "| %s | %s | %s | %s |\n", $1, $2, $3, $4}'
+  } >> "$GITHUB_STEP_SUMMARY"
+fi
+
+[ "$ok" -eq "$N" ]

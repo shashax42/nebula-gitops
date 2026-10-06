@@ -1,0 +1,93 @@
+# 플랫폼 E2E 검증: GitHub Actions 러너 안에 kind 클러스터를 띄워
+# local/bootstrap.sh와 같은 구성(ArgoCD, Argo Rollouts, Kyverno)을 올리고
+# 이미지 서명 검증과 자동 롤백 실험을 실행한다. 결과는 Run summary와 artifact로 남는다.
+
+name: platform-e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback-trials:
+        description: 장애 버전 배포 횟수
+        default: '10'
+  push:
+    branches: [main]
+    paths: ['platform/**', 'lab/**', 'local/**', '.github/workflows/platform-e2e.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-e2e
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TRIALS: ${{ inputs.rollback-trials || '10' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          version: v0.33.0
+          cluster_name: nebula
+          config: local/kind-config.yaml
+
+      - name: Bootstrap platform (ArgoCD, Rollouts, Kyverno)
+        env:
+          GITOPS_TOKEN: ${{ github.token }}   # ArgoCD가 이 private 레포를 읽기 위한 토큰 (job 동안만 유효)
+        run: ./local/bootstrap.sh
+
+      - name: Wait for ArgoCD to sync cluster resources
+        run: |
+          for i in $(seq 1 60); do
+            if kubectl get imagevalidatingpolicies.policies.kyverno.io nebula-verify-images >/dev/null 2>&1 \
+               && kubectl get validatingpolicies.policies.kyverno.io nebula-allowed-registry >/dev/null 2>&1 \
+               && kubectl get clusteranalysistemplate http-error-rate >/dev/null 2>&1; then
+              echo "정책과 분석 템플릿이 동기화됨"
+              sleep 20   # Kyverno가 정책을 웹훅에 반영할 시간
+              exit 0
+            fi
+            sleep 10
+          done
+          kubectl -n argocd get applications
+          exit 1
+
+      - name: ArgoCD applications
+        if: always()
+        run: |
+          kubectl -n argocd get applications
+          {
+            echo "### ArgoCD Applications"
+            echo
+            echo '```'
+            kubectl -n argocd get applications
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Demo - image signature policy
+        run: ./local/demo-signature.sh
+
+      - name: Demo - automatic rollback
+        run: ./local/demo-rollback.sh "$TRIALS"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-e2e-results
+          path: local/rollback-results.csv
+          if-no-files-found: ignore
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          kubectl get pods -A
+          kubectl -n rollback-lab get rollout,analysisrun,job -o wide || true
+          kubectl -n rollback-lab describe rollout podinfo || true
+          kubectl get imagevalidatingpolicies.policies.kyverno.io,validatingpolicies.policies.kyverno.io -o yaml || true
+          kubectl -n kyverno logs deploy/kyverno-admission-controller --tail=100 || true
