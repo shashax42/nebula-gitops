@@ -23,7 +23,7 @@ spec:
       serviceAccountName: spring-cloud-kubernetes
       containers:
         - name: core-gateway
-          image: ghcr.io/shashax42/core-gateway:sha-1de94be@sha256:b83da50a273c83ae2fb74fd76bf1b2dd34d7c2a37f5994b4b20c0b2d84488886
+          image: ghcr.io/shashax42/core-gateway:sha-6a5f289@sha256:438245c7139387fd9cc8ec2533b459aad79453410f99f0057610e412112c0a71
           ports:
             - containerPort: 8080
           envFrom:
