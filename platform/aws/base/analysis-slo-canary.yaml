@@ -13,7 +13,7 @@ spec:
   args:
     - name: service
     - name: amp-endpoint
-      value: ""   # terraform output -raw amp_endpoint (…/workspaces/ws-xxxx/), render-gitops-values.sh 가 채움
+      value: ""   # 환경마다 다르다 → envs/<env>/analysis-args.yaml (render-gitops-values.sh <env> 가 채움)
     - name: region
       value: ap-northeast-2
   metrics:
