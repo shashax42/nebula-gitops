@@ -17,6 +17,8 @@ spec:
     metadata:
       labels:
         app: service-product
+        # staging/prod(Istio)에서 사이드카 주입. Istio 가 없는 환경에서는 아무 효과 없음
+        sidecar.istio.io/inject: "true"
     spec:
       serviceAccountName: spring-cloud-kubernetes
       containers:
@@ -27,6 +29,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: config-product
+            # DB·Redis 비밀번호 (Nebula-Platform services.tf 가 환경마다 만든다)
+            - secretRef:
+                name: secret-product
+                optional: true
             - configMapRef:
                 name: observability-env
                 optional: true

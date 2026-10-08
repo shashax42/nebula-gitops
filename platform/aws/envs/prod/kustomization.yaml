@@ -1,0 +1,20 @@
+# prod 클러스터의 AWS 플랫폼 앱. Nebula-Platform 의 nebula-aws 앱이 이 디렉터리(platform/aws/envs/prod)를 동기화한다.
+#   values-monitoring.yaml / analysis-args.yaml 의 빈 값은 Nebula-Monitoring scripts/render-gitops-values.sh prod 가 채운다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  # otel-collector 앱: Nebula-Monitoring 차트의 환경 기본값 + 이 환경의 계정 값
+  - target:
+      kind: Application
+      name: otel-collector
+    patch: |-
+      - op: replace
+        path: /spec/sources/0/helm/valueFiles
+        value:
+          - values-prod.yaml
+          - values-target-infra.yaml
+          - $gitops/platform/aws/envs/prod/values-monitoring.yaml
+  # 카나리 분석이 조회할 이 환경의 AMP 워크스페이스
+  - path: analysis-args.yaml

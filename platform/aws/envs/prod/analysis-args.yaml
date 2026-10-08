@@ -1,0 +1,12 @@
+# prod 의 AMP 주소 (Nebula-Monitoring render-gitops-values.sh prod 가 채운다)
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: nebula-slo-canary
+spec:
+  args:
+    - name: service
+    - name: amp-endpoint
+      value: ""
+    - name: region
+      value: ap-northeast-2

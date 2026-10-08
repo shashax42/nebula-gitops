@@ -20,7 +20,17 @@ jobs:
       - name: Validate manifests
         run: |
           find . -path ./.github -prune -o -path ./local -prune -o \( -name '*.yaml' -o -name '*.yml' \) -print \
-            | grep -v -e kind-config -e '/values-[^/]*\.yaml$' \
+            | grep -v -e kind-config -e '/values-[^/]*\.yaml$' -e '/platform/aws/' \
             | xargs ./kubeconform -summary -ignore-missing-schemas \
                 -schema-location default \
                 -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+      # platform/aws 는 kustomize 오버레이(환경별 패치)라 렌더링한 결과를 검증한다
+      - name: Validate platform/aws overlays
+        run: |
+          for env in platform/aws/envs/*/; do
+            echo "== ${env}"
+            kubectl kustomize "${env}" \
+              | ./kubeconform -summary -ignore-missing-schemas \
+                  -schema-location default \
+                  -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          done
