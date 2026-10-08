@@ -5,6 +5,7 @@ kind(local/, platform-e2e)에는 없는, AWS 계정에 묶인 구성만 둔다.
 Nebula-Platform 의 `nebula-aws` 앱(`enable_aws_platform_apps = true`)이 `envs/<env>` 를 동기화한다.
 
 ```
+kustomization.yaml            이전 진입점 호환 (리팩토링 전 클러스터의 nebula-aws 앱용) → envs/dev
 base/                         환경 공통
   monitoring.yaml             kube-state-metrics + OTel Collector(agent/gateway/cluster). 차트·기본값은 Nebula-Monitoring
   analysis-slo-canary.yaml    service-order 카나리 분석: AMP 의 canary/stable 에러율·P99 비교
