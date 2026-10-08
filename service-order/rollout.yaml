@@ -1,6 +1,6 @@
 # 메트릭 기반 카나리: 새 버전 파드에 nebula.io/track=canary 라벨이 붙고, OTel agent 가 이를 deployment.track 으로
 # 수집해 canary/stable 의 에러율·P99 를 AMP 에서 따로 계산한다. 분석이 실패하면 Argo Rollouts 가 자동 롤백한다.
-#   분석 템플릿: platform/aws/analysis-slo-canary.yaml (AMP 주소가 계정마다 달라 AWS 전용 디렉터리에 둔다)
+#   분석 템플릿: platform/aws/base/analysis-slo-canary.yaml (AMP 주소가 계정·환경마다 달라 AWS 전용 오버레이 envs/<env> 로 넣는다)
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -34,6 +34,8 @@ spec:
     metadata:
       labels:
         app: service-order
+        # staging/prod(Istio)에서 사이드카 주입. Istio 가 없는 환경에서는 아무 효과 없음
+        sidecar.istio.io/inject: "true"
     spec:
       serviceAccountName: spring-cloud-kubernetes
       containers:
@@ -44,6 +46,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: config-order
+            # DB·Redis 비밀번호 (Nebula-Platform services.tf 가 환경마다 만든다)
+            - secretRef:
+                name: secret-order
+                optional: true
             - configMapRef:
                 name: observability-env
                 optional: true

@@ -1,0 +1,6 @@
+# 환경 공통 AWS 플랫폼 앱. 직접 동기화하지 않고 envs/<env> 오버레이가 가져다 쓴다
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - monitoring.yaml
+  - analysis-slo-canary.yaml

@@ -18,6 +18,9 @@ spec:
               envFrom:
                 - configMapRef:
                     name: config-batch-order
+                - secretRef:
+                    name: secret-batch-order
+                    optional: true
               env:
                 - name: "JOB_NAME"
                   value: "cancelOrderWhereStateIsPendingJob"
@@ -43,6 +46,9 @@ spec:
               envFrom:
                 - configMapRef:
                     name: config-batch-order
+                - secretRef:
+                    name: secret-batch-order
+                    optional: true
               env:
                 - name: "JOB_NAME"
                   value: "deleteOrderWhereStateIsCanceledJob"
