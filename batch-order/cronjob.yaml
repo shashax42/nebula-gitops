@@ -18,6 +18,10 @@ spec:
               envFrom:
                 - configMapRef:
                     name: config-batch-order
+                # OTLP 주소 (OTel agent). 잡이 끝날 때 마지막 지표·트레이스를 push 한다
+                - configMapRef:
+                    name: observability-env
+                    optional: true
                 - secretRef:
                     name: secret-batch-order
                     optional: true
@@ -46,6 +50,10 @@ spec:
               envFrom:
                 - configMapRef:
                     name: config-batch-order
+                # OTLP 주소 (OTel agent). 잡이 끝날 때 마지막 지표·트레이스를 push 한다
+                - configMapRef:
+                    name: observability-env
+                    optional: true
                 - secretRef:
                     name: secret-batch-order
                     optional: true
