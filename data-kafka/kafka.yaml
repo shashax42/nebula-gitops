@@ -1,0 +1,76 @@
+# 주문 사가(purchase/refund)의 메시지 브로커. Strimzi 오퍼레이터(Nebula-Platform 이 backend 에 설치)가 관리한다.
+#
+# - API 는 kafka.strimzi.io/v1: Strimzi 1.0 부터 v1beta2 가 CRD 에서 제거됐다.
+# - Kafka 버전은 Strimzi 1.2.0 의 기본값(4.3.1)을 따른다. 오퍼레이터를 올리면 이 값과 metadataVersion 도 함께 올린다.
+# - 저장소는 persistent-claim: 브로커 파드가 재시작·재스케줄돼도 메시지와 KRaft 메타데이터가 남는다.
+#   storageClass 를 비워 두면 클러스터 기본 StorageClass 를 쓴다 (EKS: Nebula-Platform 의 gp3, kind: standard).
+#   deleteClaim: false 라 Kafka CR 을 지워도 볼륨은 남는다. 데이터를 정말 지울 때만 PVC 를 직접 삭제한다.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: controller
+  namespace: backend
+  labels:
+    strimzi.io/cluster: market-message
+spec:
+  replicas: 3
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 5Gi
+        deleteClaim: false
+        kraftMetadata: shared
+---
+
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: backend
+  labels:
+    strimzi.io/cluster: market-message
+spec:
+  replicas: 3
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 20Gi
+        deleteClaim: false
+        kraftMetadata: shared
+---
+
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: market-message
+  namespace: backend
+spec:
+  kafka:
+    version: 4.3.1
+    metadataVersion: 4.3-IV0
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
