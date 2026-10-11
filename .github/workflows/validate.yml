@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # promote 워크플로가 GITHUB_TOKEN 으로 만든 PR 에는 pull_request 이벤트가 오지 않아 직접 실행한다
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -20,7 +22,7 @@ jobs:
       - name: Validate manifests
         run: |
           find . -path ./.github -prune -o -path ./local -prune -o \( -name '*.yaml' -o -name '*.yml' \) -print \
-            | grep -v -e kind-config -e '/values-[^/]*\.yaml$' -e '/platform/aws/' \
+            | grep -v -e kind-config -e '/values-[^/]*\.yaml$' -e '/platform/aws/' -e '/platform/envs/' -e '^\./envs/' -e '/kustomization\.yaml$' \
             | xargs ./kubeconform -summary -ignore-missing-schemas \
                 -schema-location default \
                 -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
@@ -30,6 +32,19 @@ jobs:
           for env in platform/aws/envs/*/; do
             echo "== ${env}"
             kubectl kustomize "${env}" \
+              | ./kubeconform -summary -ignore-missing-schemas \
+                  -schema-location default \
+                  -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          done
+      # 환경 오버레이: 구조(누락·짝·이미지 고정)를 검사하고, 각 환경에서 실제로 배포될 결과를 렌더링해 검증한다
+      - name: Check environment overlays
+        run: ./scripts/check-envs.sh
+      - name: Validate rendered environments
+        run: |
+          for dir in */ envs/*/*/ platform/envs/*/; do
+            [ -f "${dir}kustomization.yaml" ] || continue
+            echo "== ${dir}"
+            kubectl kustomize "${dir}" \
               | ./kubeconform -summary -ignore-missing-schemas \
                   -schema-location default \
                   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'

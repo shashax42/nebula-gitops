@@ -1,0 +1,41 @@
+# prod Kafka: 브로커를 AZ 별로 나눠 배치하고(rack awareness) 파티션 복제본이 서로 다른 AZ 에 놓이게 한다.
+# AZ 하나가 죽어도 min.insync.replicas(2)를 채울 수 있다. 볼륨도 트래픽에 맞게 키운다.
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: market-message
+  namespace: backend
+spec:
+  kafka:
+    rack:
+      topologyKey: topology.kubernetes.io/zone
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: backend
+spec:
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+        kraftMetadata: shared
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: controller
+  namespace: backend
+spec:
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 10Gi
+        deleteClaim: false
+        kraftMetadata: shared

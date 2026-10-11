@@ -1,0 +1,9 @@
+# 이미지는 scripts/promote.sh (또는 promote 워크플로)로만 바꾼다. 출처: staging
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../batch-order
+images:
+  - name: ghcr.io/shashax42/batch-order
+    newTag: sha-91a6453
+    digest: sha256:d06887e844d82e578f6f8d1d42f27faf17477f8336fd662ba4c4b5bc880a73d0
