@@ -1,0 +1,9 @@
+# 이미지는 scripts/promote.sh (또는 promote 워크플로)로만 바꾼다. 출처: dev
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../core-gateway
+images:
+  - name: ghcr.io/shashax42/core-gateway
+    newTag: sha-36bdc86
+    digest: sha256:1c054fa6100a5838f8168d353090519fe4d203e1a0d0d3289458194198313d4f
