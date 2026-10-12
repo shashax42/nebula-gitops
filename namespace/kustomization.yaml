@@ -1,0 +1,7 @@
+# 이 디렉터리가 dev 트랙(기준 매니페스트)이다. CI(nebula-ci-templates)가 새 이미지를 여기에 쓴다.
+# staging/prod 는 envs/<env>/namespace 가 이 디렉터리를 참조하고 이미지만 승격된 버전으로 고정한다.
+# 파일을 추가하면 아래 resources 에도 넣어야 배포된다 (validate 워크플로가 누락을 잡는다).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace-backend.yaml

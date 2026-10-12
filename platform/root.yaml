@@ -1,4 +1,4 @@
-# App of Apps 진입점. Terraform(EKS) 또는 local/bootstrap.sh(kind)가 이 파일 하나만 적용한다.
+# App of Apps 진입점. Terraform(EKS) 은 platform/envs/<env> 를, local/bootstrap.sh(kind) 는 이 파일(dev)을 적용한다.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/shashax42/nebula-gitops.git
     targetRevision: main
-    path: platform/apps
+    path: platform/envs/dev
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
